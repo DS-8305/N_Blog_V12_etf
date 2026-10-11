@@ -36,6 +36,12 @@ async function matchingSavedRows(page:Page,title:string):Promise<Locator[]>{
  return rows;
 }
 export async function confirmDraft(session:OwnedSession,expected:PreparedDraft):Promise<DraftReceipt|null>{
+ // A fresh Naver editor can return an empty document on the first saved-row open.
+ // Repeat only the read/reopen verification, never input or save dispatch.
+ const first=await confirmDraftOnce(session,expected);
+ return first??await confirmDraftOnce(session,expected);
+}
+async function confirmDraftOnce(session:OwnedSession,expected:PreparedDraft):Promise<DraftReceipt|null>{
  const proof=await readJson(join(expected.jobPath,'input-proof.json')) as DraftEvidence;
  if(!proof||!Array.isArray(proof.images)||!Array.isArray(proof.receipts))return null;
  const page=session.editorPage;await page.bringToFront();

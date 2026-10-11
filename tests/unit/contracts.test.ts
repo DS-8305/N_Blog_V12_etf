@@ -9,6 +9,9 @@ describe('ETF evidence contract',()=>{
  it('rejects ambiguous identity classes',()=>{const f=fundFixture();f.identity.isin='US0000000002';expect(codes(f)).toContain('fund_identity_ambiguous');});
  it('refuses NAV in market price graphics',()=>{const f=fundFixture();f.facts.quote.value.priceType='nav';expect(codes(f)).toContain('market_price_required');});
  it('refuses mixed quote currencies',()=>{const f=fundFixture();f.facts.range52w.value.currency='KRW';expect(codes(f)).toContain('price_currency_mismatch');});
+ it('accepts an exchange last-trade quote with an intraday 52-week range',()=>{const f=fundFixture();f.facts.quote.value.session='last';f.facts.range52w.value.session='intraday';expect(codes(f)).toEqual([]);expect(parseFacts(f).facts.quote.value.session).toBe('last');});
+ it('keeps closing-price and intraday range mismatches blocked',()=>{const f=fundFixture();f.facts.range52w.value.session='intraday';expect(codes(f)).toContain('price_basis_mismatch');});
+ it('refuses last-trade quotes against a closing-price-only range',()=>{const f=fundFixture();f.facts.quote.value.session='last';expect(codes(f)).toContain('price_basis_mismatch');});
  it('refuses market cap as AUM',()=>{const f=fundFixture();f.facts.aum.value.basis='market_cap';expect(codes(f)).toContain('net_assets_required');});
  it('refuses misleading fee labels',()=>{const f=fundFixture();f.facts.expenses.value[0].label='총보수';expect(codes(f)).toContain('expense_definition_mismatch');});
  it('allows partial holdings without pretending the sum is 100%',()=>{expect(codes(fundFixture())).toEqual([]);const f=fundFixture();f.facts.exposures.value.coverage='full';expect(codes(f)).toContain('full_weights_invalid');});

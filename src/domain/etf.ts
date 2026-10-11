@@ -16,7 +16,7 @@ const ev=<T extends z.ZodTypeAny>(value:T)=>z.object({...evidenceBase,value}).st
 const money=z.object({amount:finite.positive(),currency:z.string().regex(/^[A-Z]{3}$/),basis:z.literal('net_assets')}).strict();
 const overview=z.object({indexOrStrategy:nonempty,description:nonempty,theme:nonempty,distribution:z.enum(['variable','accumulating','none'])}).strict();
 const expense=z.object({kind:z.enum(['total_fee','total_expense','synthetic_total_fee','expense_ratio']),label:nonempty,percent:finite.min(0).max(100),annualized:z.literal(true)}).strict();
-const quote=z.object({amount:finite.positive(),currency:z.string().regex(/^[A-Z]{3}$/),priceType:z.literal('market'),session:z.enum(['close','intraday']),adjustment:z.enum(['unadjusted','split_adjusted']),exchangeTimezone:nonempty,observedAt:instant}).strict();
+const quote=z.object({amount:finite.positive(),currency:z.string().regex(/^[A-Z]{3}$/),priceType:z.literal('market'),session:z.enum(['close','intraday','last']),adjustment:z.enum(['unadjusted','split_adjusted']),exchangeTimezone:nonempty,observedAt:instant}).strict();
 const range=z.object({low:finite.positive(),high:finite.positive(),currency:z.string().regex(/^[A-Z]{3}$/),priceType:z.literal('market'),session:z.enum(['close','intraday']),adjustment:z.enum(['unadjusted','split_adjusted']),from:date,to:date}).strict();
 const exposure=z.object({name:nonempty,symbol:nonempty.optional(),isin:nonempty.optional(),weightPercent:finite.min(0).max(100),category:nonempty,basis:z.enum(['etf_actual','benchmark']).optional()}).strict();
 const exposures=z.object({mode:z.enum(['holdings','sectors','exposures']),basis:z.enum(['etf_actual','benchmark']),coverage:z.enum(['full','partial']),items:z.array(exposure).min(1).max(500),conversionReason:nonempty.optional()}).strict();
@@ -64,7 +64,8 @@ function validateFactsUnchecked(input:unknown,request:IdentityRequest):Validatio
  if(f.aum?.value.basis!=='net_assets')add('net_assets_required','aum');
  if(f.quote?.value.priceType!=='market'||f.range52w?.value.priceType!=='market')add('market_price_required');
  if(f.quote?.value.currency!==f.range52w?.value.currency||f.quote?.value.currency!==i.currency)add('price_currency_mismatch');
- if(f.quote?.value.adjustment!==f.range52w?.value.adjustment||f.quote?.value.session!==f.range52w?.value.session)add('price_basis_mismatch');
+ const sessionsMatch=f.quote?.value.session===f.range52w?.value.session||(f.quote?.value.session==='last'&&f.range52w?.value.session==='intraday');
+ if(f.quote?.value.adjustment!==f.range52w?.value.adjustment||!sessionsMatch)add('price_basis_mismatch');
  if(f.range52w&&f.quote){
   const r=f.range52w.value,q=f.quote.value,days=(+new Date(r.to)-+new Date(r.from))/86400000;
   if(!(r.high>r.low)||q.amount<r.low||q.amount>r.high||days<350||days>370||r.to>f.range52w.asOf||r.to!==f.quote.asOf)add('invalid_price_range');

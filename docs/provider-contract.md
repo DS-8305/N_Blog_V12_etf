@@ -35,7 +35,7 @@ HTTP 데이터 provider는 kind:https_json, url, approved:true, licenseNote, 선
 | overview | indexOrStrategy, description, theme, distribution(variable/accumulating/none) |
 | aum | amount, currency, basis:net_assets |
 | expenses | [{kind, label, percent, annualized:true}] |
-| quote | amount, currency, priceType:market, session:close/intraday, adjustment:unadjusted/split_adjusted, exchangeTimezone, observedAt |
+| quote | amount, currency, priceType:market, session:close/intraday/last, adjustment:unadjusted/split_adjusted, exchangeTimezone, observedAt |
 | range52w | low, high, currency, priceType:market, session, adjustment, from, to |
 | exposures | mode:holdings/sectors/exposures, basis:etf_actual/benchmark, coverage:full/partial, items:[{name, symbol?, isin?, weightPercent, category, basis?}], conversionReason? |
 

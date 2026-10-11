@@ -7,7 +7,7 @@ export function createPost(d:FactDocument):PostDocument{
  const texts=[
   i.fundName+' ('+i.symbol+')는 '+i.issuerName+'의 ETF입니다. '+f.overview.value.indexOrStrategy+'를 기준으로 운용합니다. '+f.overview.value.description+' ETF는 여러 자산을 묶어 거래소에서 한 주 단위로 사고파는 펀드입니다. 상품 이름이 비슷해도 전략과 클래스가 다를 수 있어 정식 상품을 확인하는 것이 좋습니다.',
   'AUM은 ETF가 운용하는 자산 규모인 순자산총액입니다. '+f.aum.asOf+' 기준 '+n(f.aum.value.amount)+' '+f.aum.value.currency+'입니다. 비용은 '+f.expenses.asOf+' 기준 '+f.expenses.value.map(e=>e.label+' 연 '+n(e.percent)+'%').join(', ')+'입니다. 비용 용어는 시장마다 다르며, 자산 규모가 크다고 수익이 보장되지는 않습니다.',
-  r.from+'부터 '+r.to+'까지 시장가격 범위는 '+n(r.low)+'~'+n(r.high)+' '+r.currency+'입니다. '+f.quote.asOf+' 관측 가격은 '+n(q.amount)+' '+q.currency+' ('+(q.session==='close'?'종가':'장중')+')입니다. NAV는 자산을 평가한 기준가로 거래가격과 다를 수 있습니다. 이 가격 범위는 분배금 재투자를 포함한 총수익률이 아닙니다.',
+  r.from+'부터 '+r.to+'까지 시장가격 범위는 '+n(r.low)+'~'+n(r.high)+' '+r.currency+' ('+(r.session==='close'?'일별 종가 범위':'장중 체결가 고저가')+')입니다. '+f.quote.asOf+' 관측 가격은 '+n(q.amount)+' '+q.currency+' ('+(q.session==='close'?'종가':q.session==='last'?'최근 거래가격':'장중')+')입니다. NAV는 자산을 평가한 기준가로 거래가격과 다를 수 있습니다. 이 가격 범위는 분배금 재투자를 포함한 총수익률이 아닙니다.',
   f.exposures.asOf+' 공개 자료의 '+(x.basis==='etf_actual'?'ETF 실제 편입':'벤치마크 구성')+' 비중입니다. '+holdingChartRows(x).map(e=>e.name+' '+n(e.weightPercent)+'%').join(', ')+'. 편입 비중은 포트폴리오 구성을 뜻합니다. 상위 공개 항목과 미표시 비중을 구분해 보세요. '+(x.conversionReason??'구성 자료의 기준일은 가격 기준일과 별도로 확인합니다.'),
   riskDisclosure(d)+' 비용과 전략을 공식 자료로 주기적으로 확인해 보세요. 아래 사진은 AI 생성 콘셉트 이미지입니다.'
  ];

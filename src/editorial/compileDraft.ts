@@ -23,6 +23,6 @@ export function compileDraft(job:string,b:Bundle,report:ValidationReport):Prepar
   events.push({type:'insertImage',relativePath:asset.relativePath,absolutePath:join(job,asset.relativePath),assetId:asset.assetId},{type:'typeText',text:asset.caption});captions.push(asset.caption);
  }
  const all=[b.facts.identityEvidence,...Object.values(b.facts.facts)];
- for(const e of all){const text='출처: '+e.sourceName+' · '+e.definition+' · 기준일 '+e.asOf+'\n'+e.sourceUrl;events.push({type:'typeText',text});sources.push(e.sourceUrl);}
+ for(const e of all){const text='출처: '+e.sourceName+' · '+e.definition+' · 기준일 '+e.asOf+' '+e.sourceUrl;events.push({type:'typeText',text});sources.push(e.sourceUrl);}
  return {jobId:b.request.jobId,jobPath:job,title:b.post.selectedTitle,fingerprint:report.fingerprint,events,assets:b.manifest.assets,expected:{bodyText:events.filter(e=>e.type!=='setTitle'&&e.type!=='insertImage').map(e=>'text'in e?e.text:'').join('\n'),imageAssetIds:b.manifest.assets.map(a=>a.assetId),captions,sources}};
 }
