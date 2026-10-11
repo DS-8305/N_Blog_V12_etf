@@ -1,0 +1,20 @@
+import { describe,it,expect } from 'vitest';
+import { parseFacts,validateFacts } from '../../src/domain/etf.js';
+import { parseJobRequest } from '../../src/domain/job.js';
+import { fundFixture } from '../fixtures/fund.js';
+const codes=(f:any)=>validateFacts(f,{symbol:'EXAM',market:'NASDAQ',asOfDate:'2026-10-10'}).map((e:any)=>e.code);
+describe('ETF evidence contract',()=>{
+ it('accepts independently dated, verified sources',()=>{expect(codes(parseFacts(fundFixture()))).toEqual([]);});
+ it('preserves a Korean leading zero code',()=>{const r=parseJobRequest({schemaVersion:1,jobId:'etf-zero',symbol:'069500',market:'KRX:KOSPI',asOfDate:'2026-10-10'});expect(r.symbol).toBe('069500');});
+ it('rejects ambiguous identity classes',()=>{const f=fundFixture();f.identity.isin='US0000000002';expect(codes(f)).toContain('fund_identity_ambiguous');});
+ it('refuses NAV in market price graphics',()=>{const f=fundFixture();f.facts.quote.value.priceType='nav';expect(codes(f)).toContain('market_price_required');});
+ it('refuses mixed quote currencies',()=>{const f=fundFixture();f.facts.range52w.value.currency='KRW';expect(codes(f)).toContain('price_currency_mismatch');});
+ it('refuses market cap as AUM',()=>{const f=fundFixture();f.facts.aum.value.basis='market_cap';expect(codes(f)).toContain('net_assets_required');});
+ it('refuses misleading fee labels',()=>{const f=fundFixture();f.facts.expenses.value[0].label='총보수';expect(codes(f)).toContain('expense_definition_mismatch');});
+ it('allows partial holdings without pretending the sum is 100%',()=>{expect(codes(fundFixture())).toEqual([]);const f=fundFixture();f.facts.exposures.value.coverage='full';expect(codes(f)).toContain('full_weights_invalid');});
+ it('rejects mixed benchmark and ETF holdings',()=>{const f=fundFixture();f.facts.exposures.value.items[0].basis='benchmark';expect(codes(f)).toContain('exposure_basis_mismatch');});
+ it('refuses unverified numbers and future source dates',()=>{const f=fundFixture();f.facts.aum.verification='unverified';f.facts.exposures.asOf='2026-11-01';expect(codes(f)).toEqual(expect.arrayContaining(['evidence_unverified','future_asof']));});
+ it('rejects equity holdings for a bond fund',()=>{const f=fundFixture();f.identity.type='bond';f.identityEvidence.value.type='bond';expect(codes(f)).toContain('exposures_mode_required');});
+ it('rejects adjustment mismatch and impossible zero ranges',()=>{const f=fundFixture();f.facts.range52w.value.adjustment='split_adjusted';f.facts.range52w.value.high=80;expect(codes(f)).toEqual(expect.arrayContaining(['price_basis_mismatch','invalid_price_range']));});
+ it('rejects malformed and impossible calendar dates',()=>{const f=fundFixture();f.facts.aum.asOf='2026-02-30';expect(()=>parseFacts(f)).toThrow();});
+});

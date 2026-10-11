@@ -1,0 +1,7 @@
+{
+  "name": "n-blog-v12-etf", "version": "0.1.0", "private": true, "type": "module",
+  "engines": {"node": ">=22.12.0", "pnpm": ">=11 <12"}, "packageManager": "pnpm@11.12.0",
+  "scripts": {"test": "vitest run", "typecheck": "tsc --noEmit", "build": "node build.mjs", "start": "node dist/cli.js"},
+  "dependencies": {"playwright": "1.61.1", "sharp": "0.35.4", "zod": "3.25.76"},
+  "devDependencies": {"@types/node": "22.20.0", "esbuild": "0.24.2", "typescript": "5.9.3", "vitest": "2.1.9"}
+}
