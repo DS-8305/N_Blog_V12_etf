@@ -10,8 +10,8 @@ export const identitySchema=z.object({
  leverageMultiple:finite.optional()
 }).strict();
 export type EtfIdentity=z.infer<typeof identitySchema>;
-const evidenceBase={factId:id,sourceUrl:url,sourceName:nonempty,asOf:date,retrievedAt:instant,currency:z.string().regex(/^[A-Z]{3}$/).optional(),verification:z.enum(['verified','unverified']),dataKind:z.enum(['official_issuer','official_exchange','licensed_provider','derived']),definition:nonempty};
-export interface Evidence<T> {factId:string;value:T;sourceUrl:string;sourceName:string;asOf:string;retrievedAt:string;currency?:string;verification:'verified'|'unverified';dataKind:'official_issuer'|'official_exchange'|'licensed_provider'|'derived';definition:string}
+const evidenceBase={factId:id,sourceUrl:url,sourceName:nonempty,asOf:date,asOfTimezone:nonempty.optional(),retrievedAt:instant,currency:z.string().regex(/^[A-Z]{3}$/).optional(),verification:z.enum(['verified','unverified']),dataKind:z.enum(['official_issuer','official_exchange','licensed_provider','derived']),definition:nonempty};
+export interface Evidence<T> {factId:string;value:T;sourceUrl:string;sourceName:string;asOf:string;asOfTimezone?:string;retrievedAt:string;currency?:string;verification:'verified'|'unverified';dataKind:'official_issuer'|'official_exchange'|'licensed_provider'|'derived';definition:string}
 const ev=<T extends z.ZodTypeAny>(value:T)=>z.object({...evidenceBase,value}).strict();
 const money=z.object({amount:finite.positive(),currency:z.string().regex(/^[A-Z]{3}$/),basis:z.literal('net_assets')}).strict();
 const overview=z.object({indexOrStrategy:nonempty,description:nonempty,theme:nonempty,distribution:z.enum(['variable','accumulating','none'])}).strict();
@@ -33,7 +33,15 @@ export type Quote=z.infer<typeof quote>;
 export type Range52w=z.infer<typeof range>;
 export type ExposureSet=z.infer<typeof exposures>;
 export function parseFacts(input:unknown):FactDocument{return factsSchema.parse(input);}
-export function validateFacts(input:unknown,request:{symbol:string;market:string;asOfDate:string;issuer?:string;isin?:string}):ValidationIssue[]{
+type IdentityRequest={symbol:string;market:string;asOfDate:string;issuer?:string;isin?:string};
+export function validateFacts(input:unknown,request:IdentityRequest):ValidationIssue[]{
+ try{return validateFactsUnchecked(input,request);}
+ catch{
+  const parsed=factsSchema.safeParse(input);
+  return parsed.success?[{code:'invalid_facts',path:'facts',message:'invalid_facts'}]:parsed.error.issues.map(e=>({code:'invalid_schema',path:e.path.join('.'),message:e.message}));
+ }
+}
+function validateFactsUnchecked(input:unknown,request:IdentityRequest):ValidationIssue[]{
  const errors:ValidationIssue[]=[];const add=(code:string,path='facts')=>errors.push({code,path,message:code});
  // Semantic errors are reported before structural schema errors so operators can correct definitions.
  const raw=input as FactDocument;
@@ -46,7 +54,11 @@ export function validateFacts(input:unknown,request:{symbol:string;market:string
  if(new Set(all.map(e=>e.factId)).size!==all.length)add('duplicate_fact_id');
  for(const e of all){
   if(e.verification!=='verified')add('evidence_unverified',e.factId);
-  if(e.asOf>request.asOfDate||e.asOf>e.retrievedAt.slice(0,10))add('future_asof',e.factId);
+  const sourceTimezone=e.asOfTimezone??(i.market.startsWith('KRX:')?'Asia/Seoul':'America/New_York');
+  try{
+   const retrievedDate=new Intl.DateTimeFormat('en-CA',{timeZone:sourceTimezone,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(e.retrievedAt));
+   if(e.asOf>request.asOfDate||e.asOf>retrievedDate)add('future_asof',e.factId);
+  }catch{add('invalid_source_timezone',e.factId);}
   if(e.currency&&'currency' in e.value&&e.currency!==(e.value as {currency:string}).currency)add('evidence_currency_mismatch',e.factId);
  }
  if(f.aum?.value.basis!=='net_assets')add('net_assets_required','aum');
@@ -73,6 +85,8 @@ export function validateFacts(input:unknown,request:{symbol:string;market:string
  for(const key of ['overview','aum','expenses','exposures'] as const)if(f[key]&&!['official_issuer','official_exchange'].includes(f[key].dataKind))add('official_fund_source_required',key);
  for(const key of ['quote','range52w'] as const)if(f[key]&&!['official_exchange','licensed_provider'].includes(f[key].dataKind))add('exchange_source_required',key);
  if((i.type==='leveraged'||i.type==='inverse'||i.features.some(v=>v==='leveraged'||v==='inverse'))&&(i.leverageMultiple===undefined||i.leverageMultiple===0))add('leverage_multiple_required');
+ const inverse=i.type==='inverse'||i.features.includes('inverse');
+ if(i.leverageMultiple!==undefined&&((inverse&&i.leverageMultiple>=0)||(!inverse&&i.leverageMultiple<0)))add('leverage_direction_mismatch');
  const result=factsSchema.safeParse(input);
  if(!result.success)for(const e of result.error.issues)add('invalid_schema',e.path.join('.'));
  return errors;

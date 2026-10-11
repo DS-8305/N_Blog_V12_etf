@@ -30,7 +30,13 @@ const defaults:DraftDependencies={
 export async function runDraft(jobPath:string,options:Omit<SessionOptions,'jobId'>,dependencies:Partial<DraftDependencies>={}):Promise<DraftRunResult>{
  let release:()=>Promise<void>;
  try{release=await acquireJobLock(jobPath);}catch(error){const code=(error as Error).message;return {status:'needs_user',code,message:code};}
- try{return await runDraftLocked(jobPath,options,dependencies);}finally{await release();}
+ try{return await runDraftLocked(jobPath,options,dependencies);}
+ catch(error){
+  const state=await readJobState(jobPath),code=error instanceof Error?error.message:String(error);
+  const status=state.saveAttempt.status==='attempted_unconfirmed'?'draft_unconfirmed':'failed';
+  await writeJobState(jobPath,{...state,phase:status,error:{code,message:code,resumePhase:state.phase}});
+  return {status,code,message:code};
+ }finally{await release();}
 }
 async function runDraftLocked(jobPath:string,options:Omit<SessionOptions,'jobId'>,dependencies:Partial<DraftDependencies>):Promise<DraftRunResult>{
  const deps={...defaults,...dependencies},bundle=await loadBundle(jobPath),report=await validateBundle(jobPath,bundle);
@@ -39,7 +45,7 @@ async function runDraftLocked(jobPath:string,options:Omit<SessionOptions,'jobId'
   const resumePhase=state.phase;state={...state,phase:status,error:{code,message:code,resumePhase}};
   await writeJobState(jobPath,state);return {status,code,message:code};
  };
- if(report.errors.length)return fail('failed','validation_failed:'+report.errors.map(e=>e.code).join(','));
+ if(report.errors.length)return fail(state.saveAttempt.status==='attempted_unconfirmed'?'draft_unconfirmed':state.saveAttempt.status==='confirmed'?'needs_user':'failed','validation_failed:'+report.errors.map(e=>e.code).join(','));
  const draft=compileDraft(jobPath,bundle,report);
  if(state.saveAttempt.status==='confirmed'){
   const receipt=state.saveAttempt.receipt as DraftReceipt;

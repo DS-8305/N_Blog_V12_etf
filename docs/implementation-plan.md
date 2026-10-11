@@ -22,22 +22,22 @@
 
 ## Task 1: Contracts and validation
 
-- [ ] Write and run failing tests for identity, source dates, AUM/fee/price/exposures contracts.
-- [ ] Implement src/domain and job state; pnpm test/typecheck.
+- [x] Write and run failing tests for identity, source dates, AUM/fee/price/exposures contracts.
+- [x] Implement src/domain and job state; pnpm test/typecheck.
 
 ## Task 2: Collection and capture
 
-- [ ] Write failing tests for missing providers, cross-fund binding, checkpoints and screenshot identity.
-- [ ] Implement providers/collectors/capture and import V10 browser engine.
+- [x] Write failing tests for missing providers, cross-fund binding, checkpoints and screenshot identity.
+- [x] Implement providers/collectors/capture and import V10 browser engine.
 
 ## Task 3: Rendering and editorial
 
-- [ ] Write failing tests for actual PNGs, labels/weights, 5 sections, risks, tampered assets.
-- [ ] Implement render and editorial; verify real 1200x1200 images and text bounds.
+- [x] Write failing tests for actual PNGs, labels/weights, 5 sections, risks, tampered assets.
+- [x] Implement render and editorial; verify real 1200x1200 images and text bounds.
 
 ## Task 4: Draft and CLI
 
-- [ ] Write failing tests for interrupted saves, no duplicate dispatch, receipts and CLI exit codes.
-- [ ] Adapt V10 automation without sheet/apartment assumptions; implement every required command.
-- [ ] Run full tests, typecheck, build, CLI smoke and fresh reviewer.
-- [ ] Document live limitations and push tested source to requested main.
+- [x] Write failing tests for interrupted saves, no duplicate dispatch, receipts and CLI exit codes.
+- [x] Adapt V10 automation without sheet/apartment assumptions; implement every required command.
+- [x] Run full tests, typecheck, build, CLI smoke and fresh reviewer.
+- [x] Document live limitations and push tested source to requested main.

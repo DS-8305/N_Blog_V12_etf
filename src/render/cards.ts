@@ -9,8 +9,8 @@ export function holdingChartRows(x:ExposureSet):{name:string;weightPercent:numbe
  const remainder=Math.round((100-top.reduce((sum,e)=>sum+e.weightPercent,0))*10000)/10000;
  return [...top,...(remainder>0.01?[{name:'기타 / 미표시',weightPercent:remainder}]:[])];
 }
-export async function renderDataCards(job:string,d:FactDocument):Promise<CapturedAsset[]>{
- const errors=validateFacts(d,{symbol:d.identity.symbol,market:d.identity.market,asOfDate:d.facts.quote.asOf});if(errors.length)throw Error('needs_user:'+errors.map(e=>e.code).join(','));
+export async function renderDataCards(job:string,d:FactDocument,asOfDate:string):Promise<CapturedAsset[]>{
+ const errors=validateFacts(d,{symbol:d.identity.symbol,market:d.identity.market,asOfDate});if(errors.length)throw Error('needs_user:'+errors.map(e=>e.code).join(','));
  await mkdir(join(job,'assets'),{recursive:true});const i=d.identity,f=d.facts,now=new Date().toISOString(),assets:CapturedAsset[]=[];
  const make=async(role:AssetRole,lines:CardLine[],keys:(keyof typeof f)[],caption:string)=>{
   const source=f[keys[0]]!,meta=await renderCard(join(job,'assets',role+'.png'),lines);

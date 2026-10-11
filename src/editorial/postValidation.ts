@@ -1,4 +1,5 @@
 import type { FactDocument } from '../domain/etf.js';import type { PostDocument } from '../domain/bundle.js';import { postSchema,requiredRoles } from '../domain/bundle.js';import type { ValidationReport } from '../domain/validation.js';import { fingerprint } from './fingerprint.js';import { numberText as n } from '../render/typography.js';import { holdingChartRows } from '../render/cards.js';import { riskDisclosure } from './etfRiskDisclosure.js';
+import { hasProhibitedClaim } from './claims.js';
 export const headings=['이 ETF는 무엇을 담고 있나요?','ETF 규모와 운용 비용은?','최근 1년 가격은 어떻게 움직였나요?','어떤 종목과 산업에 투자하나요?','앞으로 무엇을 살펴보면 될까요?'];
 export function createPost(d:FactDocument):PostDocument{
  const i=d.identity,f=d.facts,x=f.exposures.value,q=f.quote.value,r=f.range52w.value;
@@ -26,8 +27,7 @@ export function validatePost(p:PostDocument,d:FactDocument,length={min:800,max:1
  if(p.sections.some((s,i)=>s.role!==requiredRoles[i]||s.heading!==headings[i]))add('section_role_order');
  const ids=new Set([d.identityEvidence,...Object.values(d.facts)].map(e=>e.factId));if([...p.titleFactIds,...p.sections.flatMap(s=>[...s.factIds,...s.claims.map(c=>c.factId)])].some(id=>!ids.has(id)))add('unknown_fact_reference');
  const canonical=createPost(d),body=p.sections.map(s=>s.text).join('\n'),combined=p.selectedTitle+' '+body;
- const prohibited=[/수익(?:률)?(?:이|을|은)?\s*(?:확정|보장(?!(?:하지|되지)))/,/분배금(?:이|은)?\s*(?:확정|보장(?!(?:하지|되지)))/,/무조건.*(?:상승|수익)/,/매수(?:하세요|추천|타이밍)/,/목표가/,/원금\s*보장(?!(?:하지|되지))/,/실제\s*(?:펀드|ETF).*운용\s*사진입니다/];
- if(prohibited.some(re=>re.test(combined)))add('prohibited_claim');
+ if(hasProhibitedClaim(combined))add('prohibited_claim');
  if(!p.titleCandidates.includes(p.selectedTitle)||!canonical.titleCandidates.includes(p.selectedTitle)||p.titleCandidates.some(t=>!canonical.titleCandidates.includes(t)))add('unverified_title');
  for(const [index,s] of p.sections.entries()){
   if(fingerprint(s.factIds)!==fingerprint(canonical.sections[index]!.factIds))add('section_fact_binding');

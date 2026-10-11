@@ -2,13 +2,14 @@ import { join } from 'node:path';
 import { acquireJobLock } from '../browser/runLock.js';
 import { atomicWriteJson,readJson } from '../state/jsonStore.js';
 import { readJobState,writeJobState } from '../state/jobStore.js';
-import { parseJobRequest } from '../domain/job.js';
+import { parseJobRequest,type JobState } from '../domain/job.js';
 import { readHints,loadProvider } from '../providers/registry.js';
 import { validateFacts,type FactDocument,type FactKey } from '../domain/etf.js';
 import { fingerprint } from '../editorial/fingerprint.js';
 export async function collectJob(job:string):Promise<FactDocument>{
- const release=await acquireJobLock(job);let state=await readJobState(job);
+ const release=await acquireJobLock(job);let state:JobState|undefined;
  try{
+  state=await readJobState(job);
   if(state.saveAttempt.status!=='not_attempted'||state.lastAcknowledgedEvent>=0)throw Error('needs_user:draft_started_collection_locked');
   const request=parseJobRequest(await readJson(join(job,'request.json'))),hints=await readHints(job),provider=await loadProvider(job,request,hints);
   const identity=await provider.resolve(request.symbol,request.market);
@@ -27,6 +28,6 @@ export async function collectJob(job:string):Promise<FactDocument>{
   await atomicWriteJson(join(job,'facts.json'),document);
   await atomicWriteJson(join(job,'receipts','source-review.json'),{schemaVersion:1,jobId:request.jobId,sourceFingerprint:provider.sourceFingerprint,requestFingerprint:fingerprint(request),factsFingerprint:fingerprint(document),hintsFingerprint:fingerprint(hints),collectedAt:new Date().toISOString(),provider:hints.provider?.kind,licenseNote:hints.provider?.licenseNote});
   await writeJobState(job,{...state,phase:'collected'});return document;
- }catch(e){const code=e instanceof Error?e.message:String(e);await writeJobState(job,{...state,phase:'needs_user',error:{code,message:code,resumePhase:state.phase}});throw e;}
+ }catch(e){const code=e instanceof Error?e.message:String(e);if(state)await writeJobState(job,{...state,phase:'needs_user',error:{code,message:code,resumePhase:state.phase}});throw e;}
  finally{await release();}
 }

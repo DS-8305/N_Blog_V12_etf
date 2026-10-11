@@ -28,7 +28,7 @@ HTTP 데이터 provider는 kind:https_json, url, approved:true, licenseNote, 선
 
 문서 최상위 필드는 schemaVersion:1, jobId(실제 request와 동일), identity, identityEvidence, facts입니다. identity는 assetType:etf, symbol(문자열), market, isin(가능하면), issuerName, fundName, officialProductUrl(해당 상품 URL), currency, type, features, 선택 leverageMultiple입니다. identityEvidence.value는 identity와 완전히 동일하며 공식 상품 URL과 official_issuer를 요구합니다.
 
-각 Evidence는 factId, value, sourceUrl, sourceName, asOf(YYYY-MM-DD), retrievedAt(시간대 포함 ISO 시각), verification:verified, dataKind, definition, 금액 자료 currency를 포함합니다. facts 필수 키는 다음과 같습니다.
+각 Evidence는 factId, value, sourceUrl, sourceName, asOf(YYYY-MM-DD), retrievedAt(시간대 포함 ISO 시각), verification:verified, dataKind, definition, 금액 자료 currency를 포함합니다. asOfTimezone을 선택 지정할 수 있으며 생략하면 KRX는 Asia/Seoul, 미국 시장은 America/New_York입니다. 조회 시각의 실제 instant를 이 기준일 시간대로 변환해 미래 자료 여부를 확인합니다. facts 필수 키는 다음과 같습니다.
 
 | 키 | value |
 |---|---|
@@ -40,5 +40,6 @@ HTTP 데이터 provider는 kind:https_json, url, approved:true, licenseNote, 선
 | exposures | mode:holdings/sectors/exposures, basis:etf_actual/benchmark, coverage:full/partial, items:[{name, symbol?, isin?, weightPercent, category, basis?}], conversionReason? |
 
 category가 equity인 회사 주식만을 채권·원자재·통화 ETF에 강제하지 않습니다. exposures 모드에는 conversionReason을 함께 기록합니다. 현금·선물·채권 등 실제 구성의 category를 보존합니다.
+leverageMultiple은 방향을 포함하는 공식 일일 목표배수입니다. 일반 레버리지는 양수(예: 2), 인버스는 음수(예: -1/-2)로 입력합니다. 방향 불일치는 거부합니다.
 
 수집 때 요청/설정/원본 JSON의 fingerprint를 기록합니다. 파일 수치·출처·설정 변경은 체크포인트 재사용과 저장 검증을 무효화합니다. 입력이 시작된 job에는 수집/렌더를 다시 실행하지 말고 새 job을 만드세요. 운영자 검토 상태는 신뢰 경계이며 코드는 데이터의 경제적 진실이나 사용권을 독립적으로 인증하는 서비스가 아닙니다.
