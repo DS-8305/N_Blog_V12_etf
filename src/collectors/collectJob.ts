@@ -5,6 +5,7 @@ import { readJobState,writeJobState } from '../state/jobStore.js';
 import { parseJobRequest } from '../domain/job.js';
 import { readHints,loadProvider } from '../providers/registry.js';
 import { validateFacts,type FactDocument,type FactKey } from '../domain/etf.js';
+import { fingerprint } from '../editorial/fingerprint.js';
 export async function collectJob(job:string):Promise<FactDocument>{
  const release=await acquireJobLock(job);let state=await readJobState(job);
  try{
@@ -24,7 +25,7 @@ export async function collectJob(job:string):Promise<FactDocument>{
   const document={...provider.document,identity,facts:{...provider.document.facts,...checkpoint.facts}};
   const errors=validateFacts(document,request);if(errors.length)throw Error('needs_user:'+errors.map(e=>e.code).join(','));
   await atomicWriteJson(join(job,'facts.json'),document);
-  await atomicWriteJson(join(job,'receipts','source-review.json'),{schemaVersion:1,jobId:request.jobId,sourceFingerprint:provider.sourceFingerprint,collectedAt:new Date().toISOString(),provider:hints.provider?.kind,licenseNote:hints.provider?.licenseNote});
+  await atomicWriteJson(join(job,'receipts','source-review.json'),{schemaVersion:1,jobId:request.jobId,sourceFingerprint:provider.sourceFingerprint,requestFingerprint:fingerprint(request),factsFingerprint:fingerprint(document),hintsFingerprint:fingerprint(hints),collectedAt:new Date().toISOString(),provider:hints.provider?.kind,licenseNote:hints.provider?.licenseNote});
   await writeJobState(job,{...state,phase:'collected'});return document;
  }catch(e){const code=e instanceof Error?e.message:String(e);await writeJobState(job,{...state,phase:'needs_user',error:{code,message:code,resumePhase:state.phase}});throw e;}
  finally{await release();}
